@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sap Sam Poker">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d3b1e">
+<meta name="description" content="Classic Chinese Poker (Sap Sam Cheung). Arrange 13 cards into Front, Middle and Back hands. Play against smart AI opponents.">
+<meta name="keywords" content="Chinese Poker, Sap Sam, 13 card poker, Pusoy, card game, poker">
+
+<!-- Favicon / Icons (using emoji-style for simplicity + real icons later) -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230d3b1e' width='100' height='100' rx='20'/><text y='.9em' x='50%' text-anchor='middle' font-size='65'>🃏</text></svg>">
+
+<title>Sap Sam Poker – Chinese Poker</title>
+<link rel="manifest" href="manifest.json">
+
+<style>
+  /* iOS safe areas */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  :root {
+    --bg: #0d3b1e;
+    --panel: #14522c;
+    --gold: #e0b94f;
+    --card-bg: #f8f5f0;
+    --text: #f0f0f0;
+    --accent: #2a7a4a;
+    --danger: #a33;
+    --highlight: #ffd700;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 10px;
+    overflow-x: hidden;
+  }
+  h1 {
+    text-align: center;
+    color: var(--gold);
+    font-size: 1.4rem;
+    margin: 8px 0 4px;
+  }
+  .subtitle { text-align: center; font-size: 0.85rem; opacity: 0.8; margin-bottom: 12px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 6px;
+    min-width: 120px;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn { -webkit-appearance: none; touch-action: manipulation; }
+  .btn-gold { background: #b8942e; }
+  .btn-danger { background: var(--danger); }
+  .btn:disabled { opacity: 0.5; }
+  .center { text-align: center; }
+  .row-label {
+    font-size: 0.8rem;
+    color: var(--gold);
+    margin: 6px 0 2px 4px;
+    font-weight: 600;
+  }
+  .card-row {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 8px 6px;
+    min-height: 92px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+    justify-content: flex-start;
+    align-items: center;
+  }
+  .card {
+    width: 58px;
+    height: 82px;
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 2px solid #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 2px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .card.selected {
+    border-color: var(--highlight);
+    box-shadow: 0 0 0 3px var(--highlight);
+    transform: translateY(-4px);
+  }
+  .card .rank { font-size: 0.9rem; line-height: 1; }
+  .card .suit { font-size: 1.3rem; line-height: 1; }
+  .card.red { color: #c0392b; }
+  .card.black { color: #1a1a1a; }
+  .pool-area {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #2a5a3a;
+  }
+  .message {
+    text-align: center;
+    font-size: 0.9rem;
+    min-height: 24px;
+    margin: 8px 0;
+    color: var(--gold);
+  }
+  .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 10px 0; }
+  .hand-name { font-size: 0.75rem; color: #aaa; margin-left: 6px; }
+  .result-banner {
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    padding: 14px;
+    border-radius: 12px;
+    margin: 12px 0;
+  }
+  .win { background: #1a5c2e; }
+  .lose { background: #5c1a1a; }
+  .tie { background: #5c4a1a; }
+  .score-detail { text-align: center; font-size: 1.1rem; margin-bottom: 8px; }
+  .points-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 14px;
+    font-size: 0.9rem;
+    background: var(--panel);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .points-table th, .points-table td {
+    padding: 8px 6px;
+    text-align: center;
+    border-bottom: 1px solid #1e4a2e;
+  }
+  .points-table th { background: #0f3a20; color: var(--gold); font-weight: 600; }
+  .points-table .win-cell { color: #6f6; font-weight: 700; }
+  .points-table .lose-cell { color: #f66; font-weight: 700; }
+  .points-table .tie-cell { color: #ccc; }
+  .royalty-note { text-align: center; font-size: 0.8rem; color: #aaa; margin-bottom: 8px; }
+  .showdown-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .showdown-side {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 10px 8px;
+  }
+  .showdown-side h3 { color: var(--gold); margin-bottom: 8px; font-size: 1.05rem; text-align: center; }
+  .hand-block { margin-bottom: 10px; }
+  .hand-block .row-label { margin-bottom: 3px; }
+  .mini-row { display: flex; flex-wrap: wrap; gap: 4px; min-height: 68px; justify-content: center; }
+  .mini-card {
+    width: 46px;
+    height: 64px;
+    background: var(--card-bg);
+    border-radius: 6px;
+    border: 1.5px solid #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .mini-card .suit { font-size: 1.1rem; }
+  .hand-result {
+    font-size: 0.75rem;
+    text-align: center;
+    margin-top: 2px;
+    font-weight: 600;
+  }
+  .hand-result.win { color: #6f6; }
+  .hand-result.lose { color: #f66; }
+  .hand-result.tie { color: #aaa; }
+  .showdown-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  @media (min-width: 700px) {
+    .showdown-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  }
+  .showdown-4 .showdown-side { padding: 8px 6px; }
+  .showdown-4 .mini-card { width: 40px; height: 56px; font-size: 0.7rem; }
+  .showdown-4 .mini-card .suit { font-size: 0.95rem; }
+  .player-total {
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 8px 0;
+    color: var(--gold);
+  }
+  @media (max-width: 400px) {
+    .showdown-grid { grid-template-columns: 1fr; }
+  }
+  @media (min-width: 600px) {
+    .card { width: 68px; height: 96px; font-size: 1.05rem; }
+    .card .suit { font-size: 1.5rem; }
+    body { max-width: 700px; margin: 0 auto; }
+  }
+</style>
+</head>
+<body>
+  <h1>Sap Sam Poker</h1>
+  <div class="subtitle">Chinese Poker · 十三張</div>
+
+  <!-- MENU -->
+  <div id="menu" class="screen active center">
+    <p style="margin:18px 12px;opacity:0.9;line-height:1.45">
+      The classic Chinese Poker game.<br>
+      Arrange your 13 cards into three poker hands.<br>
+      <strong>Bottom (strongest) ≥ Middle ≥ Top (weakest)</strong>
+    </p>
+    <button class="btn btn-gold" onclick="startGame(1)">Heads-up vs AI</button>
+    <button class="btn btn-gold" onclick="startGame(3)" style="margin-top:12px">Table • You vs 3 AIs</button>
+    <p style="margin-top:28px;font-size:0.8rem;opacity:0.65;max-width:280px;margin-left:auto;margin-right:auto;line-height:1.4">
+      Tip: On iPhone tap the Share button → <strong>Add to Home Screen</strong> for the full app experience.
+    </p>
+  </div>
+
+  <!-- ARRANGING -->
+  <div id="arrange" class="screen">
+    <div class="message" id="msg">Tap cards to select, then tap a row to place them</div>
+
+    <div class="row-label">TOP · FRONT (3 cards) — WEAKEST hand <span class="hand-name" id="frontName"></span></div>
+    <div class="card-row" id="frontRow" onclick="placeTo('front')"></div>
+
+    <div class="row-label">MIDDLE (5 cards) — SECOND strongest <span class="hand-name" id="midName"></span></div>
+    <div class="card-row" id="midRow" onclick="placeTo('middle')"></div>
+
+    <div class="row-label">BOTTOM · BACK (5 cards) — STRONGEST hand <span class="hand-name" id="backName"></span></div>
+    <div class="card-row" id="backRow" onclick="placeTo('back')"></div>
+
+    <div class="pool-area">
+      <div class="row-label">YOUR CARDS (tap to select)</div>
+      <div class="card-row" id="poolRow" style="background:#0a2e18"></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="autoArrange()">Auto Arrange</button>
+      <button class="btn btn-gold" id="confirmBtn" onclick="confirmPlay()" disabled>Confirm & Play</button>
+      <button class="btn btn-danger" onclick="showMenu()">Menu</button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result" class="screen">
+    <div class="result-banner" id="resultBanner"></div>
+    <div class="score-detail" id="scoreDetail"></div>
+    <div class="player-total" id="playerTotal"></div>
+
+    <table class="points-table" id="pointsTable">
+      <thead id="pointsHead"></thead>
+      <tbody id="pointsBody"></tbody>
+    </table>
+    <div class="royalty-note" id="royaltyNote"></div>
+
+    <div id="handsArea"></div>
+
+    <div class="controls">
+      <button class="btn btn-gold" id="newGameBtn" onclick="startGame(numAIs)">New Game</button>
+      <button class="btn" onclick="showMenu()">Menu</button>
+    </div>
+  </div>
+
+<script>
+const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const RANK_VAL = Object.fromEntries(RANKS.map((r,i)=>[r,i]));
+const SUITS = ['♠','♥','♦','♣'];
+
+let playerCards = [], aiCardsList = [];
+let front = [], middle = [], back = [], pool = [];
+let selected = new Set();
+let numAIs = 1;
+
+function createDeck() {
+  const d = [];
+  for (const r of RANKS) for (const s of SUITS) d.push(r+s);
+  return d;
+}
+function parse(c) {
+  if (c.startsWith('10')) return ['10', c[2]];
+  return [c[0], c[1]];
+}
+function sortCards(cards) {
+  return [...cards].sort((a,b) => {
+    const [ra,sa] = parse(a), [rb,sb] = parse(b);
+    return RANK_VAL[ra]-RANK_VAL[rb] || SUITS.indexOf(sa)-SUITS.indexOf(sb);
+  });
+}
+function isRed(suit) { return suit === '♥' || suit === '♦'; }
+
+function rank5(cards) {
+  const parsed = cards.map(parse);
+  const rs = parsed.map(p => RANK_VAL[p[0]]);
+  const ss = parsed.map(p => p[1]);
+  const cnt = {};
+  rs.forEach(r => cnt[r] = (cnt[r]||0)+1);
+  const isFlush = new Set(ss).size === 1;
+  const unique = [...new Set(rs)].sort((a,b)=>a-b);
+  let isStraight = false, sHigh = 0;
+  if (unique.length === 5) {
+    if (unique[4]-unique[0] === 4) { isStraight = true; sHigh = unique[4]; }
+    else if (unique.join() === '0,1,2,3,12') { isStraight = true; sHigh = 3; }
+  }
+  const sortedRs = [...rs].sort((a,b)=>b-a);
+  if (isStraight && isFlush) return [8, sHigh, sortedRs];
+  if (Object.values(cnt).includes(4)) {
+    const q = +Object.keys(cnt).find(k=>cnt[k]===4);
+    const k = +Object.keys(cnt).find(k=>cnt[k]===1);
+    return [7, q, k];
+  }
+  if (Object.values(cnt).sort().join() === '2,3') {
+    const t = +Object.keys(cnt).find(k=>cnt[k]===3);
+    const p = +Object.keys(cnt).find(k=>cnt[k]===2);
+    return [6, t, p];
+  }
+  if (isFlush) return [5, sortedRs];
+  if (isStraight) return [4, sHigh, sortedRs];
+  if (Object.values(cnt).includes(3)) {
+    const t = +Object.keys(cnt).find(k=>cnt[k]===3);
+    const kicks = Object.keys(cnt).filter(k=>cnt[k]===1).map(Number).sort((a,b)=>b-a);
+    return [3, t, kicks];
+  }
+  const pairs = Object.keys(cnt).filter(k=>cnt[k]===2).map(Number).sort((a,b)=>b-a);
+  if (pairs.length === 2) {
+    const k = +Object.keys(cnt).find(k=>cnt[k]===1);
+    return [2, pairs[0], pairs[1], k];
+  }
+  if (pairs.length === 1) {
+    const kicks = Object.keys(cnt).filter(k=>cnt[k]===1).map(Number).sort((a,b)=>b-a);
+    return [1, pairs[0], kicks];
+  }
+  return [0, sortedRs];
+}
+function rank3(cards) {
+  const rs = cards.map(c => RANK_VAL[parse(c)[0]]);
+  const cnt = {};
+  rs.forEach(r => cnt[r] = (cnt[r]||0)+1);
+  const sorted = [...rs].sort((a,b)=>b-a);
+  if (Object.values(cnt).includes(3)) return [3, sorted[0]];
+  if (Object.values(cnt).includes(2)) {
+    const p = +Object.keys(cnt).find(k=>cnt[k]===2);
+    const k = +Object.keys(cnt).find(k=>cnt[k]===1);
+    return [1, p, k];
+  }
+  return [0, sorted];
+}
+function handName(r, isFront=false) {
+  const names = {8:'Straight Flush',7:'Four of a Kind',6:'Full House',5:'Flush',4:'Straight',3:'Three of a Kind',2:'Two Pair',1:'One Pair',0:'High Card'};
+  return names[r[0]] || '?';
+}
+function isValid(f, m, b) {
+  if (f.length!==3 || m.length!==5 || b.length!==5) return false;
+  const rf = rank3(f), rm = rank5(m), rb = rank5(b);
+  if (rb[0] < rm[0]) return false;
+  if (rm[0] < rf[0]) return false;
+  if (rb[0]===rm[0] && JSON.stringify(rb)<JSON.stringify(rm)) return false;
+  if (rm[0]===rf[0] && JSON.stringify(rm)<JSON.stringify(rf)) return false;
+  return true;
+}
+function compare(h1, h2, isFront=false) {
+  const r1 = isFront ? rank3(h1) : rank5(h1);
+  const r2 = isFront ? rank3(h2) : rank5(h2);
+  const s1 = JSON.stringify(r1), s2 = JSON.stringify(r2);
+  if (s1 > s2) return 1;
+  if (s1 < s2) return -1;
+  return 0;
+}
+
+function autoArrangeCards(cards) {
+  let best = null, bestScore = null;
+  const comb = (arr, n) => {
+    const res = [];
+    const go = (start, curr) => {
+      if (curr.length === n) { res.push([...curr]); return; }
+      for (let i=start; i<arr.length; i++) { curr.push(arr[i]); go(i+1, curr); curr.pop(); }
+    };
+    go(0, []);
+    return res;
+  };
+  for (const b of comb(cards, 5)) {
+    const rem1 = cards.filter(c => !b.includes(c));
+    for (const m of comb(rem1, 5)) {
+      const f = rem1.filter(c => !m.includes(c));
+      if (!isValid(f, m, b)) continue;
+      const score = [rank5(b), rank5(m), rank3(f)];
+      if (!bestScore || JSON.stringify(score) > JSON.stringify(bestScore)) {
+        bestScore = score;
+        best = [f, m, b];
+      }
+    }
+  }
+  if (!best) {
+    const s = sortCards(cards);
+    return [s.slice(0,3), s.slice(3,8), s.slice(8)];
+  }
+  return best;
+}
+
+// ========== UI ==========
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showMenu() { show('menu'); }
+
+function cardHTML(card, selectable=false, sel=false) {
+  const [rank, suit] = parse(card);
+  const cls = (isRed(suit) ? 'red' : 'black') + (sel ? ' selected' : '');
+  return `<div class="card ${cls}" data-card="${card}">
+    <div class="rank">${rank}</div>
+    <div class="suit">${suit}</div>
+  </div>`;
+}
+function miniCardHTML(card) {
+  const [rank, suit] = parse(card);
+  const cls = isRed(suit) ? 'red' : 'black';
+  return `<div class="mini-card ${cls}"><div>${rank}</div><div class="suit">${suit}</div></div>`;
+}
+
+function render() {
+  // Pool
+  const poolEl = document.getElementById('poolRow');
+  poolEl.innerHTML = pool.map((c,i) => cardHTML(c, true, selected.has(i))).join('');
+  poolEl.querySelectorAll('.card').forEach((el,i) => {
+    el.onclick = (e) => { e.stopPropagation(); toggleSelect(i); };
+  });
+
+  // Rows
+  document.getElementById('frontRow').innerHTML = front.map(c => cardHTML(c)).join('');
+  document.getElementById('midRow').innerHTML = middle.map(c => cardHTML(c)).join('');
+  document.getElementById('backRow').innerHTML = back.map(c => cardHTML(c)).join('');
+
+  // Click cards in rows to return to pool
+  ['front','middle','back'].forEach(row => {
+    const el = document.getElementById(row==='front'?'frontRow':row==='middle'?'midRow':'backRow');
+    el.querySelectorAll('.card').forEach((cardEl, idx) => {
+      cardEl.onclick = (e) => {
+        e.stopPropagation();
+        returnToPool(row, idx);
+      };
+    });
+  });
+
+  // Names
+  if (front.length===3) document.getElementById('frontName').textContent = handName(rank3(front), true);
+  else document.getElementById('frontName').textContent = '';
+  if (middle.length===5) document.getElementById('midName').textContent = handName(rank5(middle));
+  else document.getElementById('midName').textContent = '';
+  if (back.length===5) document.getElementById('backName').textContent = handName(rank5(back));
+  else document.getElementById('backName').textContent = '';
+
+  // Message & confirm
+  const complete = front.length===3 && middle.length===5 && back.length===5 && pool.length===0;
+  const valid = complete && isValid(front, middle, back);
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('confirmBtn');
+  if (complete) {
+    if (valid) {
+      msg.textContent = 'Valid set! Tap Confirm & Play';
+      msg.style.color = 'var(--gold)';
+      btn.disabled = false;
+    } else {
+      msg.textContent = 'Invalid arrangement! Bottom (Back) must be strongest, then Middle, then Top (Front) weakest';
+      msg.style.color = '#f66';
+      btn.disabled = true;
+    }
+  } else {
+    msg.textContent = `Select cards then tap a row · Left: ${13 - front.length - middle.length - back.length}`;
+    msg.style.color = 'var(--gold)';
+    btn.disabled = true;
+  }
+}
+
+function toggleSelect(i) {
+  if (selected.has(i)) selected.delete(i);
+  else selected.add(i);
+  render();
+}
+function placeTo(row) {
+  if (selected.size === 0) return;
+  const limit = {front:3, middle:5, back:5}[row];
+  const target = {front, middle, back}[row];
+  const indices = [...selected].sort((a,b)=>b-a);
+  for (const i of indices) {
+    const card = pool[i];
+    if (target.length < limit) {
+      target.push(card);
+      pool.splice(i, 1);
+    }
+  }
+  selected.clear();
+  front = sortCards(front);
+  middle = sortCards(middle);
+  back = sortCards(back);
+  pool = sortCards(pool);
+  render();
+}
+function returnToPool(row, idx) {
+  const target = {front, middle, back}[row];
+  const card = target.splice(idx, 1)[0];
+  pool.push(card);
+  pool = sortCards(pool);
+  selected.clear();
+  render();
+}
+
+function startGame(n) {
+  if (typeof n === "number") numAIs = n;
+  const deck = createDeck();
+  for (let i = deck.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  playerCards = sortCards(deck.slice(0,13));
+  aiCardsList = [];
+  for (let i = 0; i < numAIs; i++) {
+    aiCardsList.push(sortCards(deck.slice(13 + i*13, 26 + i*13)));
+  }
+  front = []; middle = []; back = [];
+  pool = [...playerCards];
+  selected.clear();
+  document.getElementById("newGameBtn").setAttribute("onclick", `startGame(${numAIs})`);
+  show('arrange');
+  render();
+}
+
+function autoArrange() {
+  const [f, m, b] = autoArrangeCards(playerCards);
+  front = f; middle = m; back = b;
+  pool = [];
+  selected.clear();
+  render();
+}
+
+
+function getRoyalties(f, m, b) {
+  let pts = 0;
+  const notes = [];
+  const rf = rank3(f);
+  const rm = rank5(m);
+  const rb = rank5(b);
+  if (rf[0] === 3) { pts += 3; notes.push("Front Trips +3"); }
+  if (rm[0] === 6) { pts += 2; notes.push("Mid FH +2"); }
+  if (rm[0] === 7) { pts += 4; notes.push("Mid Quads +4"); }
+  if (rm[0] === 8) { pts += 5; notes.push("Mid SF +5"); }
+  if (rb[0] === 7) { pts += 4; notes.push("Back Quads +4"); }
+  if (rb[0] === 8) { pts += 5; notes.push("Back SF +5"); }
+  return { pts, notes };
+}
+
+function confirmPlay() {
+  if (!isValid(front, middle, back)) return;
+
+  // Arrange all AIs
+  const aiSets = aiCardsList.map((cards, i) => {
+    const [f, m, b] = autoArrangeCards(cards);
+    return { f, m, b, name: "AI" + (i+1) };
+  });
+
+  // Score against each AI
+  let totalYou = 0;
+  const breakdown = []; // per AI
+
+  aiSets.forEach((ai, idx) => {
+    const rf = compare(front, ai.f, true);
+    const rm = compare(middle, ai.m);
+    const rb = compare(back, ai.b);
+    let pts = rf + rm + rb;
+    const wins = (rf>0?1:0) + (rm>0?1:0) + (rb>0?1:0);
+    let scoop = 0;
+    if (wins === 3) { pts += 3; scoop = 3; }
+    else if (wins === 0) { pts -= 3; scoop = -3; }
+
+    const youRoy = getRoyalties(front, middle, back);
+    const aiRoy  = getRoyalties(ai.f, ai.m, ai.b);
+    // In multiplayer, royalties are usually kept by the player who has them (not transferred)
+    // Common rule: each player just scores their own royalties at end of hand
+    // For simplicity here we only add the player's royalties once later
+
+    breakdown.push({
+      name: ai.name,
+      rf, rm, rb, pts, scoop,
+      fName: handName(rank3(ai.f), true),
+      mName: handName(rank5(ai.m)),
+      bName: handName(rank5(ai.b))
+    });
+    totalYou += pts;
+  });
+
+  // Player royalties (awarded once)
+  const youRoy = getRoyalties(front, middle, back);
+  totalYou += youRoy.pts;
+
+  // ===== BUILD POINTS TABLE =====
+  const head = document.getElementById("pointsHead");
+  const body = document.getElementById("pointsBody");
+
+  if (numAIs === 1) {
+    head.innerHTML = `<tr><th>Hand</th><th>You</th><th>AI1</th><th>Pts</th></tr>`;
+    const b = breakdown[0];
+    const cell = (res) => res > 0 ? "win-cell" : res < 0 ? "lose-cell" : "tie-cell";
+    const ptsStr = (res) => res > 0 ? "+1" : res < 0 ? "-1" : "0";
+    body.innerHTML = `
+      <tr>
+        <td>Front</td>
+        <td class="${cell(b.rf)}">${handName(rank3(front),true)}</td>
+        <td class="${cell(-b.rf)}">${b.fName}</td>
+        <td class="${cell(b.rf)}">${ptsStr(b.rf)}</td>
+      </tr>
+      <tr>
+        <td>Middle</td>
+        <td class="${cell(b.rm)}">${handName(rank5(middle))}</td>
+        <td class="${cell(-b.rm)}">${b.mName}</td>
+        <td class="${cell(b.rm)}">${ptsStr(b.rm)}</td>
+      </tr>
+      <tr>
+        <td>Back</td>
+        <td class="${cell(b.rb)}">${handName(rank5(back))}</td>
+        <td class="${cell(-b.rb)}">${b.bName}</td>
+        <td class="${cell(b.rb)}">${ptsStr(b.rb)}</td>
+      </tr>
+      <tr><td colspan="3" style="text-align:right;color:#aaa">Scoop</td><td>${b.scoop? (b.scoop>0?"+3":"-3") : "—"}</td></tr>
+      <tr><td colspan="3" style="text-align:right;color:#aaa">Your Royalties</td><td class="win-cell">${youRoy.pts? "+"+youRoy.pts : "0"}</td></tr>
+      <tr style="font-weight:700;background:#0f3a20"><td colspan="3" style="text-align:right">Total vs AI1</td><td>You ${totalYou>=0?"+"+totalYou:totalYou}</td></tr>
+    `;
+  } else {
+    // Multi AI table - summary per opponent
+    head.innerHTML = `<tr><th>vs</th><th>Front</th><th>Mid</th><th>Back</th><th>Scoop</th><th>Net</th></tr>`;
+    let rows = "";
+    breakdown.forEach(b => {
+      const icon = (r) => r>0 ? "<span class='win-cell'>W</span>" : r<0 ? "<span class='lose-cell'>L</span>" : "T";
+      rows += `<tr>
+        <td>${b.name}</td>
+        <td>${icon(b.rf)}</td>
+        <td>${icon(b.rm)}</td>
+        <td>${icon(b.rb)}</td>
+        <td>${b.scoop? (b.scoop>0?"+3":"-3") : "—"}</td>
+        <td class="${b.pts>0?"win-cell":b.pts<0?"lose-cell":"tie-cell"}">${b.pts>=0?"+"+b.pts:b.pts}</td>
+      </tr>`;
+    });
+    rows += `<tr><td colspan="5" style="text-align:right;color:#aaa">Your Royalties</td><td class="win-cell">${youRoy.pts? "+"+youRoy.pts : "0"}</td></tr>`;
+    rows += `<tr style="font-weight:700;background:#0f3a20"><td colspan="5" style="text-align:right">Grand Total</td><td>You ${totalYou>=0?"+"+totalYou:totalYou}</td></tr>`;
+    body.innerHTML = rows;
+  }
+
+  document.getElementById("royaltyNote").textContent = youRoy.notes.length ? ("Royalties: " + youRoy.notes.join(", ")) : "No royalties this hand";
+
+  // Banner
+  const banner = document.getElementById('resultBanner');
+  const detail = document.getElementById('scoreDetail');
+  if (totalYou > 0) {
+    banner.textContent = 'You Win the Round!';
+    banner.className = 'result-banner win';
+  } else if (totalYou < 0) {
+    banner.textContent = 'You Lost the Round';
+    banner.className = 'result-banner lose';
+  } else {
+    banner.textContent = "Even Round";
+    banner.className = 'result-banner tie';
+  }
+  detail.textContent = `Playing against ${numAIs} AI${numAIs>1?"s":""}`;
+  document.getElementById("playerTotal").textContent = `Your Total: ${totalYou >= 0 ? "+"+totalYou : totalYou} points`;
+
+  // ===== SHOW ALL HANDS =====
+  const area = document.getElementById("handsArea");
+  let handsHTML = `<div class="showdown-4">`;
+
+  // You
+  handsHTML += `
+    <div class="showdown-side">
+      <h3>YOU</h3>
+      <div class="hand-block">
+        <div class="row-label">Top (Front) — Weakest</div>
+        <div class="mini-row">${front.map(miniCardHTML).join('')}</div>
+        <div class="hand-result">${handName(rank3(front),true)}</div>
+      </div>
+      <div class="hand-block">
+        <div class="row-label">Middle</div>
+        <div class="mini-row">${middle.map(miniCardHTML).join('')}</div>
+        <div class="hand-result">${handName(rank5(middle))}</div>
+      </div>
+      <div class="hand-block">
+        <div class="row-label">Bottom (Back) — Strongest</div>
+        <div class="mini-row">${back.map(miniCardHTML).join('')}</div>
+        <div class="hand-result">${handName(rank5(back))}</div>
+      </div>
+    </div>`;
+
+  // Each AI
+  aiSets.forEach(ai => {
+    handsHTML += `
+    <div class="showdown-side">
+      <h3>${ai.name}</h3>
+      <div class="hand-block">
+        <div class="row-label">Top (Front)</div>
+        <div class="mini-row">${ai.f.map(miniCardHTML).join('')}</div>
+        <div class="hand-result">${handName(rank3(ai.f),true)}</div>
+      </div>
+      <div class="hand-block">
+        <div class="row-label">Middle</div>
+        <div class="mini-row">${ai.m.map(miniCardHTML).join('')}</div>
+        <div class="hand-result">${handName(rank5(ai.m))}</div>
+      </div>
+      <div class="hand-block">
+        <div class="row-label">Bottom (Back)</div>
+        <div class="mini-row">${ai.b.map(miniCardHTML).join('')}</div>
+        <div class="hand-result">${handName(rank5(ai.b))}</div>
+      </div>
+    </div>`;
+  });
+
+  handsHTML += `</div>`;
+  area.innerHTML = handsHTML;
+
+  show('result');
+}
+
+// Prevent double-tap zoom on iOS
+document.addEventListener('dblclick', e => e.preventDefault(), {passive:false});
+</script>
+
+  <!-- iOS Install Banner -->
+  <div id="iosInstall" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1a1a1a;color:#fff;padding:14px 16px;padding-bottom:calc(14px + env(safe-area-inset-bottom));font-size:0.9rem;z-index:999;border-top:1px solid #333;text-align:center;">
+    <div style="margin-bottom:8px;">Install <strong>Sap Sam Poker</strong> on your Home Screen</div>
+    <div style="font-size:0.8rem;opacity:0.8;margin-bottom:10px;">Tap <span style="font-size:1.1rem;">□↑</span> Share → Add to Home Screen</div>
+    <button onclick="document.getElementById('iosInstall').style.display='none'" style="background:#333;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:0.85rem;">Got it</button>
+  </div>
+  <script>
+    // Show install tip only on iOS Safari and only once
+    (function() {
+      const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+      const isStandalone = window.navigator.standalone === true;
+      const seen = localStorage.getItem('sapsam_install_seen');
+      if (isIos && !isStandalone && !seen) {
+        setTimeout(() => {
+          document.getElementById('iosInstall').style.display = 'block';
+          localStorage.setItem('sapsam_install_seen', '1');
+        }, 1800);
+      }
+    })();
+  </script>
+
+</body>
+</html>
